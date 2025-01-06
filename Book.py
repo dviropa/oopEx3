@@ -2,13 +2,13 @@
 import pandas as pd
 class Book:
     def __init__(self, author, name, year, category, available, num_of_copies):
-        self.author = author
-        self.name = name
-        self.year = year
-        self.category = category
-        self.num_of_copies = num_of_copies
-        self.num_of_available_copies = num_of_copies
-        self.num_of_borrowed_copies = 0
+        self.__author = author
+        self.__name = name
+        self.__year = year
+        self.__category = category
+        self.__num_of_copies = num_of_copies
+        self.__num_of_available_copies = num_of_copies
+        self.__num_of_borrowed_copies = 0
 
 
     def get_author(self):
