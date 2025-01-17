@@ -13,9 +13,10 @@ class Library(Observable):
         self.wait_list: dict = {}
         auth_system : Authinactor = Authinactor()
         self.logger = Log()
+        self.load_books_from_csv()
 
         
-    def load_books_from_csv(self, filename):
+    def load_books_from_csv(self):
         books_df = pd.read_csv("books.csv", dtype={"title": str, "author": str, "year": int, "category": str, "copies": int})
         available_df = pd.read_csv("available_books.csv", dtype={"title":str, "copies": int})
         loaned_df = pd.read_csv("loaned_books.csv", dtype={"title":str, "copies": int , "user_id": int})
@@ -49,7 +50,7 @@ class Library(Observable):
 
     def add_exsisting_book(self, book:Book,dict):
         # לוקחים מהcsv את הערכים למילון כלומר
-        # dict{titel,(book,dict{book_id,(bool,user)})}
+        # dict{titel,(book,sum_borowd_amunt,dict{book_id,(bool,user)})}
         self.lib_books[book.get_title()] = dict
 
     def add_book(self, title, author, year, category ,copies , available_copies = 1, ):
@@ -66,7 +67,7 @@ class Library(Observable):
         
         else:
             book = Book(title, author, year, category)
-            self.lib_books[title] = (book , {i:{False: None} for i in range(copies)}) # book and empty dictionary for borrowed books
+            self.lib_books[title] = (book , 0,{i:{False: None} for i in range(copies)}) # book and empty dictionary for borrowed books
             
             self.notify(f"New Book in the library: {book.__str__()}")
 
@@ -78,7 +79,7 @@ class Library(Observable):
     def remove_books(self, title):
         # if book is not borrowd 
         try:
-            for i in range(len(self.lib_books[title][1])):
+            for i in range(len(self.lib_books[title][1][1])):
                 self.remove_book_copy(title)
             
         except RuntimeError:
@@ -88,7 +89,7 @@ class Library(Observable):
         index = self.first_available_copy(title)
         
         if index is not None:
-            del self.lib_books[title][1][index]
+            del self.lib_books[title][1][1][index]
             self.logger.log(f"removing one copy of {title} copy number {index}")
 
             # עדכון קובץ ספרים וספרים פנויים
@@ -100,8 +101,8 @@ class Library(Observable):
             self.logger.log("Eror: No available copies")
     
     def add_book_copy(self, title):
-        index = len(self.lib_books[title][1])+1
-        self.lib_books[title][1][index] = {False: None}
+        index = len(self.lib_books[title][1][1])+1
+        self.lib_books[title][1][1][index] = {False: None}
         self.logger.log(f"add new copy of {title} copy number {index}")
 
         # עדכון קובץ ספרים וספרים פנויים
@@ -121,7 +122,8 @@ class Library(Observable):
                     self.__apdate_whiting_list_csv()
                 return False
 
-            self.lib_books[title][1][index] = {True: user}
+            self.lib_books[title][1][1][index] = {True: user}
+            self.lib_books[title][1][0]=self.lib_books[title][1][0]+1
             self.logger.log(f" user :{user.get_name()} lownd {title} ")
             # עדכון קובץ ספרים וספרים פנויים וספרים מושאלים
             self.__apdate_books_csv()
@@ -146,7 +148,7 @@ class Library(Observable):
             if index is None:
                 raise ValueError("User has not borrowed this book")
             self.logger.log(f" user:{user.get_name()} reterning {title} ")
-            self.lib_books[title][1][index] = {False: None}
+            self.lib_books[title][1][1][index] = {False: None}
             # עדכון קובץ ספרים וספרים פנויים וספרים מושאלים
             self.__apdate_books_csv()
             self.__apdate_available_csv()
@@ -169,8 +171,8 @@ class Library(Observable):
     def first_available_copy(self, title):
         if title not in self.lib_books:
             raise ValueError("Book not found")
-        for i in range(len(self.lib_books[title][1])):
-            if not self.lib_books[title][1][i]:
+        for i in range(len(self.lib_books[title][1][1])):
+            if not self.lib_books[title][1][1][i]:
                 return i
         return None
     
@@ -211,8 +213,8 @@ class Library(Observable):
         if not self.is_book_valid(title):
             raise ValueError("Book not found")
         
-        for i in range(len(self.lib_books[title][1])):
-            if self.lib_books[title][1][i] == {True: user}:
+        for i in range(len(self.lib_books[title][1][1])):
+            if self.lib_books[title][1][1][i] == {True: user}:
                 return i
         
         return None
