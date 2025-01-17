@@ -52,7 +52,10 @@ class Library(Observable):
         # לוקחים מהcsv את הערכים למילון כלומר
         # dict{titel,(book,sum_borowd_amunt,dict{book_id,(bool,user)})}
         self.lib_books[book.get_title()] = dict
-
+    def popular_books(self):
+        popular_books=self.wait_list[list(self.wait_list.keys())[0]]
+        #popular_books+= dict{titel,(book,sum_borowd_amunt}  10 עם הכי הרבה השאלות
+        return self.lib_books
     def add_book(self, title, author, year, category ,copies , available_copies = 1, ):
         
         if title in self.lib_books:
