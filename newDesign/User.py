@@ -1,7 +1,7 @@
 from Observer import Observer
 
 class User(Observer):   
-    def __init__(self, name,id = 0):
+    def __init__(self, name,id=None):
         super().__init__()
         self.id = id
         self.name = name
