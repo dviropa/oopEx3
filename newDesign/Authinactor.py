@@ -3,25 +3,25 @@ import uuid
 
 import pandas as pd
 from User import User
-
+from log import Log
 
 class Authinactor:
     def __init__(self):
         self.users = {}
         self.hashed_passwords = {}
         self.read_users_from_csv()
+        self.logger=Log()
 
-    def __load_csv(self, filename):
+    def __load_csv(self):
         try:
-            return pd.read_csv(filename)
+            return pd.read_csv("users.csv")
         except (FileNotFoundError, pd.errors.EmptyDataError):
-            self.logger.log(f"not abele to open {filename}")
+            self.logger.log(f"not abele to open users.csv")
             df = pd.DataFrame(columns=["id", "name", "hashed_password"])
-
             return df
 
-    def read_users_from_csv(self, filename="users.csv"):
-        df = self.__load_csv(filename)
+    def read_users_from_csv(self):
+        df = self.__load_csv()
         if not df.empty:
             self.users = {user_id: False for user_id in df["id"].tolist()}
             self.hashed_passwords = {
@@ -35,7 +35,7 @@ class Authinactor:
     def register(self, user_id, user_name, password: str):
         # register the user with the hashed password
         if user_id is None:
-            df = self.__load_csv("users.csv")
+            df = self.__load_csv()
             user_id = int(df["id"].max()) + 1 if not df.empty else 1
         if user_id in self.users:
             raise ValueError("User already exists")

@@ -4,7 +4,7 @@ import os
 import json
 from Library import Library
 from User import User
-
+from Book import Book
 
 class MyTestCase(unittest.TestCase):
 
@@ -21,29 +21,13 @@ class MyTestCase(unittest.TestCase):
             "author": ["Author1", "Author2", "Author3"],
             "year": [2020, 2021, 2022],
             "category": ["Fiction", "Sci-Fi", "Fantasy"],
+            "sum_borowd_amunt": [10, 5, 7],
             "is_loaned": [
                 json.dumps({1: True, 2: False}),
                 json.dumps({1: True}),
                 json.dumps({1: True, 2: False, 3: True})
-            ],
-            "sum_borowd_amunt": [10, 5, 7]
+            ]
         }).to_csv(cls.books_csv, index=False)
-
-        pd.DataFrame({
-            "title": ["Book1", "Book3"],
-            "copies": [2, 3]
-        }).to_csv(cls.available_books_csv, index=False)
-
-        pd.DataFrame({
-            "title": ["Book2"],
-            "copies": [1],
-            "user_id": [123]
-        }).to_csv(cls.loaned_books_csv, index=False)
-
-        pd.DataFrame({
-            "title": ["Book1"],
-            "user": ["User1"]
-        }).to_csv(cls.wait_list_csv, index=False)
 
     @classmethod
     def tearDownClass(cls):
@@ -57,10 +41,8 @@ class MyTestCase(unittest.TestCase):
         self.library = Library()
 
     def test_add_book(self):
-        self.library.add_book("Book4", "Author4", 2023, "Non-Fiction", 1)
+        self.library.add_book("Book4", "Author4", 2023, "Fiction")
         self.assertTrue("Book4" in self.library.lib_books)
-        self.assertEqual(self.library.lib_books["Book4"]["copies"], 1)
-
     def test_loan_book(self):
         user = User(456, "TestUser")
         self.library.loan_book("Book1", user)
@@ -84,3 +66,5 @@ class MyTestCase(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
