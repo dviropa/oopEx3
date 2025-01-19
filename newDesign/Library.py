@@ -20,15 +20,30 @@ class Library(Observable):
     def load_books_from_csv(self):
         # טעינת קובצי CSV
         books_df = pd.read_csv("books.csv",
-            dtype={"title": str, "author": str, "year": int, "category": str, "sum_borowd_amunt": int})
+                               dtype={"title": str, "author": str, "year": int, "category": str,
+                                      "sum_borowd_amunt": int})
         books_df["is_loaned"] = books_df["is_loaned"].apply(json.loads)
 
         available_df = pd.read_csv("available_books.csv", dtype={"title": str, "copies": int})
         loaned_df = pd.read_csv("loaned_books.csv", dtype={"title": str, "copies": int})
-        wait_list_df = pd.read_csv("wait_list.csv", dtype={"title": str})
+        # wait_list_df = pd.read_csv("wait_list.csv", dtype={"title": str, "user_id": int})
+        try:
+            # קריאת הקובץ wait_list.csv
+            wait_list_df = pd.read_csv("wait_list.csv")
 
-        wait_list_df["user_id"] = wait_list_df["user_id"].apply(json.loads)
+            # בדיקה ותיקון של user_id
+            wait_list_df["user_id"] = wait_list_df["user_id"].apply(
+                lambda x: json.loads(x) if isinstance(x, str) else x
+            )
 
+            # המרה לרשימת מילונים
+            self.wait_list = wait_list_df.to_dict(orient="records")
+            print("Loaded wait list successfully:", self.wait_list)
+
+        except FileNotFoundError:
+            print("Error: wait_list.csv not found.")
+        except Exception as e:
+            print(f"Unexpected error: {e}")
         # אתחול lib_books
         for _, row in books_df.iterrows():
             book = Book(row["title"], row["author"], row["year"], row["category"], row["copies"])
@@ -39,8 +54,6 @@ class Library(Observable):
             if row["title"] not in self.wait_list:
                 self.wait_list[row["title"]] = []
             self.wait_list[row["title"]].append(User(row["user_id"]))
-
-
 
     def __update_books_csv(self, titel, filename="books.csv"):
         df = self.__load_csv(filename)
@@ -72,16 +85,30 @@ class Library(Observable):
 
         df.to_csv(filename, index=False)
 
-    def __update_waiting_list_csv(self, titel, user: User, filename="wait_list.csv"):
+    def __update_waiting_list_csv(self, titel, filename="wait_list.csv"):
         df = self.__load_csv(filename)
-        #
-        # if titel in df["titel"].values:
-        #     df.loc[df["titel"] == titel, "user"]+=user
-        # else:
-        #     new_row = {"titel": titel, "amount": 1}
-        #     df = df.append(new_row, ignore_index=True)
-        #
-        # df.to_csv(filename, index=False)
+
+        if "user" in df.columns:
+            df["user"] = df["user"].apply(lambda x: json.loads(x) if isinstance(x, str) else [])
+
+        if titel in df["titel"].values:
+            if titel in self.wait_list:
+                df.loc[df["titel"] == titel, "user"] = [self.wait_list[titel]]
+            else:
+                df.loc[df["titel"] == titel, "user"] = [None]
+        else:
+            # הוספת שורה חדשה עם רשימת ההמתנה
+
+            if titel in self.wait_list:
+                new_row = {"titel": titel, "user": self.wait_list[titel]}
+                df = df.append(new_row, ignore_index=True)
+            else:
+                new_row = {"titel": titel, "user": None}
+                df = df.append(new_row, ignore_index=True)
+
+        df["user"] = df["user"].apply(json.dumps)
+        df.to_csv(filename, index=False)
+
     def __load_csv(self, filename):
         """Load a CSV file or create a new one if not found."""
         try:
@@ -89,6 +116,7 @@ class Library(Observable):
         except (FileNotFoundError, pd.errors.EmptyDataError):
             self.logger.log(f"not abele to open {filename}")
             return pd.DataFrame()
+
     def add_exsisting_book(self, book: Book, dict: dict):
         # לוקחים מהcsv את הערכים למילון כלומר
         # dict{titel,(book,sum_borowd_amunt,dict{book_id,(bool,user)})}
@@ -100,13 +128,16 @@ class Library(Observable):
         books_df = books_df.sort_values(by="sum_borowd_amunt", ascending=False).head(10)
         popular_titles = books_df["titel"].tolist()
         return popular_titles
+
     def get_books_in_waiting_list(self):
         wait_list_titles = []
         if hasattr(self, "wait_list") and isinstance(self.wait_list, dict):
             wait_list_titles = list(self.wait_list.keys())
         return wait_list_titles
+
     def top10_and_waiting_list(self):
-        combined_titles = self.top10_popular_books() + [title for title in self.get_books_in_waiting_list() if title not in self.top10_popular_books()]
+        combined_titles = self.top10_popular_books() + [title for title in self.get_books_in_waiting_list() if
+                                                        title not in self.top10_popular_books()]
         return combined_titles
 
     def add_book(self, title, author, year, category, copies=1):
@@ -118,14 +149,14 @@ class Library(Observable):
             assert book.get_year() == year, "book added fail, Year mismatch"
             assert book.get_categories() == category, "book added fail, Category mismatch"
 
-            while copies-1 > 1:
-                copies-=1
+            while copies - 1 > 1:
+                copies -= 1
                 self.add_book_copy(title)
             self.add_book_copy(title)
         else:
             book = Book(title, author, year, category)
             self.lib_books[title] = (
-            book, 0, {i: {False: None} for i in range(copies)})  # book and empty dictionary for borrowed books
+                book, 0, {i: {False: None} for i in range(copies)})  # book and empty dictionary for borrowed books
             self.logger.log(f"a new book {title} has been added")
             # self.notify(f"book added successfully")
             # עדכון קובץ ספרים וספרים פנויים
@@ -138,8 +169,8 @@ class Library(Observable):
             self.logger.log(f"book removed fail")
 
         try:
-            num_copis = len(self.lib_books[title][1][1])
-            for i in range(len(self.lib_books[title][1][1])):
+            num_copis = len(self.lib_books[title][2])
+            for i in range(len(self.lib_books[title][2])):
                 num_copis -= 1
                 self.remove_book_copy(title)
             if num_copis == 0:
@@ -154,7 +185,7 @@ class Library(Observable):
         index = self.first_available_copy(title)
 
         if index is not None:
-            del self.lib_books[title][1][1][index]
+            del self.lib_books[title][2][index]
             self.logger.log(f"removing one copy of {title} copy number {index} successfully ")
 
             # עדכון קובץ ספרים וספרים פנויים
@@ -166,8 +197,8 @@ class Library(Observable):
             raise RuntimeError("No available copies to remove")
 
     def add_book_copy(self, title):
-        index = len(self.lib_books[title][1][1]) + 1
-        self.lib_books[title][1][1][index] = {False: None}
+        index = len(self.lib_books[title][2]) + 1
+        self.lib_books[title][2][index] = {False: None}
         self.logger.log(f"aded a new copy of {title}  copy number {index}")
 
         # עדכון קובץ ספרים וספרים פנויים
@@ -182,12 +213,12 @@ class Library(Observable):
                     self.wait_list[title].append(user)
                     self.logger.log(f"add user :{user.get_name()} to  {title} witing list")
                     # עדקון קובץ רשימת המתנה
-                    self.__update_waiting_list_csv()
+                    self.__update_waiting_list_csv(title)
                 self.logger.log(f"book borrowed fail - there are no available copy")
                 return False
 
-            self.lib_books[title][1][1][index] = {True: user}
-            self.lib_books[title][1][0] = self.lib_books[title][1][0] + 1
+            self.lib_books[title][2][index] = {True: user}
+            self.lib_books[title][1] += 1
             self.logger.log(f"book borrowed successfully - user :{user.get_name()} lownd {title}")
             # עדכון קובץ ספרים וספרים פנויים וספרים מושאלים
             self.__update_books_csv(title)
@@ -197,6 +228,7 @@ class Library(Observable):
             if user in self.wait_list[title]:
                 self.logger.log(f" removing user :{user.get_name()} from waiting list ")
                 self.wait_list[title].remove(user)
+                self.__update_waiting_list_csv(title)
 
             return True
 
@@ -210,7 +242,7 @@ class Library(Observable):
             if index is None:
                 raise ValueError("book returned fail - User has not borrowed this book")
             self.logger.log(f"book returned successfully - user:{user.get_name()} returned {title} ")
-            self.lib_books[title][1][1][index] = {False: None}
+            self.lib_books[title][2][index] = {False: None}
             # עדכון קובץ ספרים וספרים פנויים וספרים מושאלים
             self.__update_books_csv(title)
             self.__update_available_csv(title, 1)
@@ -233,18 +265,41 @@ class Library(Observable):
     def first_available_copy(self, title):
         if title not in self.lib_books:
             raise ValueError("Book not found")
-        for i in range(len(self.lib_books[title][1][1])):
-            if not self.lib_books[title][1][1][i]:
+        for i in range(len(self.lib_books[title][2])):
+            if not self.lib_books[title][2][i]:
                 return i
         return None
 
     def update_book(self, title, new_title, author, year, category):
-        self.logger.log(f"abdate {title}")
-        # עדכון קובץ ספרים וספרים פנויים וספרים מושאלים
+        filename = "books.csv"
+        df = self.__load_csv(filename)
+
+        # בדיקה אם הספר קיים
+        if title not in df["title"].values:
+            self.logger.log(f"Error: Book '{title}' not found.")
+            raise ValueError(f"Book '{title}' not found in the library.")
+
+        # עדכון פרטי הספר
+        df.loc[df["title"] == title, "author"] = author
+        df.loc[df["title"] == title, "year"] = year
+        df.loc[df["title"] == title, "category"] = category
+        df.loc[df["title"] == title, "title"] = new_title
+        df.to_csv(filename, index=False)
+
+        if title in self.lib_books:
+            book = self.lib_books.pop(title)
+            book[0].title = new_title
+            book[0].author = author
+            book[0].year = year
+            book[0].category = category
+            self.lib_books[new_title] = book
+
+        self.logger.log(
+            f"Updated book '{title}' to '{new_title}' with author='{author}', year={year}, category='{category}'.")
 
     def register_new_user(self, user: User, password):
         try:
-            self.auth_system.register(user.get_id(),user.get_name(), password)
+            self.auth_system.register(user.get_id(), user.get_name(), password)
             self.logger.log(f"register new user:{user.get_name()} ")
         except ValueError as e:
             print(e.args[0])
@@ -273,9 +328,8 @@ class Library(Observable):
     def user_borrowed_book(self, title, user: User):
         if not self.is_book_valid(title):
             raise ValueError("Book not found")
-
-        for i in range(len(self.lib_books[title][1][1])):
-            if self.lib_books[title][1][1][i] == {True: user}:
+        for i in range(len(self.lib_books[title][2])):
+            if self.lib_books[title][2][i] == {True: user}:
                 return i
 
         return None

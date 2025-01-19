@@ -14,7 +14,7 @@ import pandas as pd
 # ---------------- Model ------------------
 class LibraryDataManager:
     def __init__(self):
-        self.lib = lib.Library()
+        # self.lib = lib.Library()
         # self.books = lib.get_available_books()
         # self.users = lib.get_users()
         # self.clients = lib.get_clint()
@@ -120,6 +120,7 @@ class LibraryController:
             ("add user", self.add_user_screen()),
             ("הוסף לרשימת המתנה", self.add_to_waitlist),
             ("השאלת ספר", self.borrow_book),
+            ("logaut",self.logaut),
             ("החזרת ספר", self.return_book_screen),
             ("search", self.search_book_screen)
         ]
@@ -130,6 +131,8 @@ class LibraryController:
         for widget in root.winfo_children():
             widget.destroy()
         root.configure(bg="#f9f9f9")
+        tk.Button(root, text="חזרה", command=LibraryUI.load_main_menu, font=("Arial", 14),
+                  bg="#f44336", fg="white", activebackground="#d32f2f", padx=20, pady=10).pack(pady=10)
 
         tk.Label(root, text="חפש ספר", font=("Arial", 20), bg="#f9f9f9", fg="#333").pack(pady=20)
 
@@ -283,16 +286,10 @@ class LibraryController:
         password_entry = tk.Entry(root, font=("Arial", 14), show="*")
         password_entry.pack(pady=10)
 
-        tk.Label(root, text="level", font=("Arial", 14), bg="#f9f9f9", fg="#555").pack()
-        level_entry = tk.Entry(root, font=("Arial", 14))
-        level_entry.pack(pady=10)
-
         def add_user():
             username = username_entry.get()
             password = password_entry.get()
-            level=level_entry.get()
-
-            u.User.__init__(username,password,level)
+            LibraryDataManager.add_user(username,password)
             LibraryUI.show_popup(f"'{username}' נוסף בהצלחה.")
             LibraryUI.load_main_menu()
 
