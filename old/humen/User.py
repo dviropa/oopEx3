@@ -3,7 +3,7 @@ import pandas as pd
 import json
 
 # from Person import Person
-from humen.Person import Person
+from old.humen.Person import Person
 
 
 class User(Person):
@@ -64,9 +64,6 @@ class User(Person):
             notifications.append(message)
             user_df.loc[user_df["id"] == self.get_id(), "notifications"] = json.dumps(notifications)
             print(f"Notification added for {self.get_name()}: {message}")
-
-    import pandas as pd
-    import hashlib
 
 
 # Example usage

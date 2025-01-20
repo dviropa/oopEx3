@@ -1,11 +1,11 @@
 
 class Book():
-    def __init__(self, title, author, year , category,id):
+    def __init__(self, title, author, year , category,id=0):
         self.__title = title
         self.__author = author
         self.__year = year
         self.__category = category
-        self.id = id
+        # self.id = id
         
     def get_title(self):
         return self.__title

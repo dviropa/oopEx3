@@ -1,14 +1,11 @@
 
 from Book import Book
 from Library import Library as lib
-import pandas as pd
 from User import User as u
 
-from search import Search
+from old.newDesign.search import Search
 from Authinactor import Authinactor as auth
-import hashlib
 import tkinter as tk
-from tkinter import messagebox
 import pandas as pd
 
 # ---------------- Model ------------------

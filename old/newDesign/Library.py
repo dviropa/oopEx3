@@ -46,7 +46,7 @@ class Library(Observable):
             print(f"Unexpected error: {e}")
         # אתחול lib_books
         for _, row in books_df.iterrows():
-            book = Book(row["title"], row["author"], row["year"], row["category"], row["copies"])
+            book = Book(row["title"], row["author"], row["year"], row["category"])
             self.lib_books[row["title"]] = (book, row["sum_borowd_amunt"], row["is_loaned"])
 
         # אתחול wait_list

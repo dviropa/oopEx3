@@ -3,7 +3,7 @@ import json
 import pandas as pd
 
 # from humen import  Person
-from humen.Person import Person
+from old.humen.Person import Person
 
 
 class Client(Person):

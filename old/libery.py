@@ -1,8 +1,6 @@
 import json
-from queue import Queue
 import pandas as pd
-from books import Book as book
-from books.Book import BookFactory
+from old.books.Book import BookFactory
 
 
 class Library:
@@ -232,7 +230,7 @@ class Library:
 
     def get_users(self):
         try:
-            users_df = pd.read_csv("users.csv",)
+            users_df = pd.read_csv("users.csv", )
         except (FileNotFoundError, pd.errors.EmptyDataError):
             users_df = pd.DataFrame(columns=["id", "name", "password", "level"])
         return users_df.set_index("name")["password"].to_dict()
